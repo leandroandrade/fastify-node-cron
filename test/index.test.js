@@ -164,3 +164,22 @@ test('fastify-node-cron worker handler is not async function', async t => {
     t.equal(err.message, 'worker `handler` should be async')
   }
 })
+
+test('fastify-node-cron worker throw error', async t => {
+  const clock = sinon.useFakeTimers(new Date(2018, 0, 1, 0, 0, 0, 0))
+
+  const fastify = Fastify()
+  t.teardown(fastify.close.bind(fastify))
+
+  await fastify.register(fastifyNodeCron, {
+    workersDir: path.join(__dirname, 'worker-throw-error')
+  })
+
+  clock.tick(1000)
+
+  const workerName = 'throwerror'
+  t.ok(fastify.scheduler.workers[workerName].task)
+  t.equal(fastify.scheduler.workers[workerName].count, 1)
+
+  clock.restore()
+})
