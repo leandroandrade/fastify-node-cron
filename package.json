@@ -1,17 +1,13 @@
 {
   "name": "fastify-node-cron",
-  "version": "0.1.0",
-  "description": "This module provides a way run scheduler workers using node-cron with fastify.",
+  "version": "1.0.0",
+  "description": "This module provides a way run scheduler workers using node-cron with fastify, featuring native node-cron v4 options and graceful shutdown.",
   "main": "index.js",
   "scripts": {
-    "coverage": "npm run unit -- --coverage-report=lcovonly",
     "lint": "standard | snazzy",
     "lint:fix": "standard --fix | snazzy",
     "test": "npm run lint && npm run unit",
-    "test:ci": "npm run lint && npm run coverage",
-    "unit": "tap -J \"test/*.test.js\"",
-    "unit:report": "npm run unit -- --coverage-report=html",
-    "unit:verbose": "npm run unit -- -Rspec"
+    "unit": "node --test --test-concurrency=1 ./test/**/*.test.js"
   },
   "keywords": [
     "cron",
@@ -30,14 +26,13 @@
   "homepage": "https://github.com/leandroandrade/fastify-node-cron#readme",
   "license": "MIT",
   "devDependencies": {
-    "fastify": "^4.27.0",
-    "sinon": "^18.0.0",
+    "fastify": "^5.6.1",
+    "sinon": "^21.0.0",
     "snazzy": "^9.0.0",
-    "standard": "^17.1.0",
-    "tap": "^16.3.10"
+    "standard": "^17.1.2"
   },
   "dependencies": {
-    "fastify-plugin": "^4.5.1",
-    "node-cron": "^3.0.3"
+    "fastify-plugin": "^5.1.0",
+    "node-cron": "^4.2.1"
   }
 }
