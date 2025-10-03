@@ -3,9 +3,10 @@ module.exports = class SampleWorker {
     this.fastify = fastify
     this.name = 'sample'
     this.cron = '* * * * * *'
+    this.count = 0
   }
 
   async handler () {
-    this.fastify.scheduler.workers[this.name].count = (this.fastify.scheduler.workers[this.name].count || 0) + 1
+    this.count++
   }
 }

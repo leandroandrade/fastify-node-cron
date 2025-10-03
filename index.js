@@ -19,17 +19,17 @@ async function dirExists (path) {
 
 async function fastifyNodeCron (fastify, options) {
   if (!options.workersDir) {
-    throw new Error('workers directory should be defined')
+    throw new Error('fastify-node-cron workers directory should be defined')
   }
 
   const canAccess = await dirExists(options.workersDir)
   if (!canAccess) {
-    throw new Error('cannot access the workers directory defined')
+    throw new Error('fastify-node-cron cannot access the workers directory defined')
   }
 
   const files = await getWorkersFiles(options.workersDir)
   if (!files.length) {
-    throw new Error('workers directory is empty')
+    throw new Error('fastify-node-cron workers directory is empty')
   }
 
   const decoratorObject = {
@@ -44,51 +44,56 @@ async function fastifyNodeCron (fastify, options) {
     const instance = new Worker(fastify)
 
     if (!instance.name) {
-      throw new Error('worker `name` should be defined')
+      throw new Error('fastify-node-cron worker `name` should be defined')
     }
 
     if (!instance.cron) {
-      throw new Error('worker `cron` should be defined')
+      throw new Error('fastify-node-cron worker `cron` should be defined')
+    }
+
+    if (!cron.validate(instance.cron)) {
+      throw new Error(`fastify-node-cron worker '${instance.name}' has invalid cron expression: ${instance.cron}`)
     }
 
     if (typeof instance.handler === 'undefined') {
-      throw new Error('worker `handler` should be defined')
+      throw new Error('fastify-node-cron worker `handler` should be defined')
     }
 
     if (instance.handler[Symbol.toStringTag] !== 'AsyncFunction') {
-      throw new Error('worker `handler` should be async')
+      throw new Error('fastify-node-cron worker `handler` should be async')
     }
 
-    const task = cron.schedule(instance.cron, () => {
-      instance.handler()
-        .then(() => {
-          fastify.log.info(`worker ${instance.name} finished`)
-        })
-        .catch((err) => {
-          fastify.log.error({ err }, `worker ${instance.name} finished with error`)
-        })
-    }, instance.options)
+    const taskOptions = {
+      ...instance.options,
+      name: instance.name
+    }
+
+    const task = cron.schedule(instance.cron, async () => {
+      try {
+        await instance.handler()
+      } catch (err) {
+        fastify.log.error({ err }, `fastify-node-cron worker ${instance.name} finished with error`)
+      }
+    }, taskOptions)
 
     decoratorObject.workers[instance.name] = {
       task,
-      stop: task.stop.bind(task),
-      start: task.start.bind(task),
-      now: task.now.bind(task)
+      instance
     }
   }
 
-  fastify.addHook('onClose', (_, done) => {
-    for (const key in decoratorObject.workers) {
-      decoratorObject.workers[key].stop()
-    }
-    done()
+  fastify.addHook('onClose', async () => {
+    const workers = Object.values(decoratorObject.workers)
+    await Promise.all(
+      workers.map(worker => worker.task.stop())
+    )
   })
 
   fastify.decorate('scheduler', decoratorObject)
 }
 
 module.exports = fp(fastifyNodeCron, {
-  fastify: '4.x',
+  fastify: '5.x',
   name: 'fastify-node-cron'
 })
 
